@@ -1,0 +1,32 @@
+{
+  "3G_N3": {
+    "mean_proc_delay_s": 0.00857,
+    "mean_total_delay_s": 0.33378,
+    "mean_queue_length": 0.55
+  },
+  "3G_N5": {
+    "mean_proc_delay_s": 0.01326,
+    "mean_total_delay_s": 0.43132,
+    "mean_queue_length": 0.15
+  },
+  "4G_N3": {
+    "mean_proc_delay_s": 0.00783,
+    "mean_total_delay_s": 0.06964,
+    "mean_queue_length": 0.3
+  },
+  "4G_N5": {
+    "mean_proc_delay_s": 0.01329,
+    "mean_total_delay_s": 0.07881,
+    "mean_queue_length": 0.1
+  },
+  "5G_N3": {
+    "mean_proc_delay_s": 0.00775,
+    "mean_total_delay_s": 0.02615,
+    "mean_queue_length": 0.25
+  },
+  "5G_N5": {
+    "mean_proc_delay_s": 0.01352,
+    "mean_total_delay_s": 0.03378,
+    "mean_queue_length": 0.25
+  }
+}

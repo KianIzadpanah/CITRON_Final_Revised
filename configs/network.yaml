@@ -1,0 +1,54 @@
+# Network and hardware configuration for CITRON simulation
+# All values preserved from paper Table II, III, V unless explicitly noted
+
+v2i_networks:
+  3G:
+    bandwidth_mbps: 2
+    energy_per_mb: 1.8
+    latency_s: 0.15
+  4G:
+    bandwidth_mbps: 50
+    energy_per_mb: 1.0
+    latency_s: 0.05
+  5G:
+    bandwidth_mbps: 100
+    energy_per_mb: 0.7
+    latency_s: 0.01
+
+v2v_networks:
+  DSRC:
+    bandwidth_mbps: 27
+    energy_per_mb: 0.5
+    latency_s: 0.01
+  WiFi:
+    bandwidth_mbps: 100
+    energy_per_mb: 0.3
+    latency_s: 0.005
+
+hardware:
+  cloud_gpu_power_w: 200          # Paper Table V
+  leader_gpu_power_w: 200         # Same GPU class assumed; discussed in paper
+  leader_cpu_power_w: 80          # Paper Table V
+  self_cpu_power_w: 80            # Paper Table V
+
+measured_constants:
+  avg_crop_size_bytes: 257903.25  # Measured from processed KITTI crops
+  avg_overlap_fraction: 0.4       # Fraction of crop that is in overlap region
+  avg_cloud_inference_time_s: 0.01287   # YOLOv8n on cloud GPU
+  avg_leader_inference_time_s: 0.00305  # Siamese model per pair on leader GPU
+  avg_cpu_self_inference_time_s: 0.1287 # YOLOv8n on vehicle CPU (10x slower)
+  avg_fusion_time_s: 0.001              # Mask-guided stitch (estimated)
+  resize_factor: 0.6
+  d_vehicle_to_cloud_km: 1000
+  d_vehicle_to_leader_km: 0.18778
+  speed_of_light_fiber_km_s: 200000
+
+# Staggered ODO transmissions: vehicle k starts at t0 + k * offset * T_single_tx
+staggered_tx_offset_fraction: 0.05
+
+# Sensitivity sweep ranges
+sensitivity:
+  overlap_fractions: [0.2, 0.3, 0.4, 0.5, 0.6]
+  resize_factors: [0.4, 0.5, 0.6, 0.7, 0.8, 1.0]
+  leader_gpu_powers_w: [50, 80, 100, 150, 200]
+  vehicle_counts: [2, 3, 4, 5, 6]

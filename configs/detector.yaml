@@ -1,0 +1,26 @@
+model: yolov8n
+mode: crop_mode # crop_mode | stitched_mode
+
+training:
+  epochs: 60
+  patience: 10
+  batch: 16
+  imgsz: 640
+  device: 0 # GPU index; use 'cpu' if no GPU
+  workers: 4
+  mixup: 0.1
+  save: true
+  plots: true
+
+classes: [Car, Pedestrian, Van, Cyclist, Truck, Misc, Tram, Person_sitting]
+nc: 8
+
+data:
+  split_dir: "/kaggle/input/datasets/kianizadpanah/kitti-citron-revised/citron_revision/data/processed/metadata"
+  crop_dir: "/kaggle/input/datasets/kianizadpanah/kitti-citron-revised/citron_revision/data/processed/crops"
+  stitched_dir: "/kaggle/input/datasets/kianizadpanah/kitti-citron-revised/citron_revision/data/processed/stitched"
+  train_csv: "detect_train.csv"
+  val_csv: "detect_val.csv"
+
+output_root: "/kaggle/working/citron_revision/outputs/detection"
+yolo_data_yaml: "/kaggle/working/citron_revision/outputs/detection/kitti_citron.yaml"

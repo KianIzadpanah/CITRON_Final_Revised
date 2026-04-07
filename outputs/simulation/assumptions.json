@@ -1,0 +1,52 @@
+{
+  "v2i_networks": {
+    "3G": {
+      "bandwidth_mbps": 2,
+      "energy_per_mb": 1.8,
+      "latency_s": 0.15
+    },
+    "4G": {
+      "bandwidth_mbps": 50,
+      "energy_per_mb": 1.0,
+      "latency_s": 0.05
+    },
+    "5G": {
+      "bandwidth_mbps": 100,
+      "energy_per_mb": 0.7,
+      "latency_s": 0.01
+    }
+  },
+  "v2v_networks": {
+    "DSRC": {
+      "bandwidth_mbps": 27,
+      "energy_per_mb": 0.5,
+      "latency_s": 0.01
+    },
+    "WiFi": {
+      "bandwidth_mbps": 100,
+      "energy_per_mb": 0.3,
+      "latency_s": 0.005
+    }
+  },
+  "hardware": {
+    "cloud_gpu_power_w": 200,
+    "leader_gpu_power_w": 200,
+    "leader_cpu_power_w": 80,
+    "self_cpu_power_w": 80
+  },
+  "measured_constants": {
+    "avg_crop_size_bytes": 257903.25,
+    "avg_overlap_fraction": 0.4,
+    "avg_cloud_inference_time_s": 0.01287,
+    "avg_leader_inference_time_s": 0.00305,
+    "avg_cpu_self_inference_time_s": 0.1287,
+    "avg_fusion_time_s": 0.001,
+    "resize_factor": 0.6,
+    "d_vehicle_to_cloud_km": 1000,
+    "d_vehicle_to_leader_km": 0.18778,
+    "speed_of_light_fiber_km_s": 200000
+  },
+  "staggered_tx_offset_fraction": 0.05,
+  "note_4g": "4G added; 6G removed to match paper Table II (3G/4G/5G)",
+  "note_citron_payload": "S_fused = resize_factor * (N * S_crop - (N-1) * S_overlap); fix from original script that returned ODO payload for all methods"
+}

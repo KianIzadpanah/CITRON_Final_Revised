@@ -1,0 +1,13 @@
+vehicle_count,split_type,split_name,n_scenes
+3,overlap,train,5442
+3,overlap,val,1177
+3,overlap,test,1181
+3,detect,train,5848
+3,detect,val,1181
+3,detect,test,771
+5,overlap,train,5478
+5,overlap,val,1163
+5,overlap,test,1159
+5,detect,train,5852
+5,detect,val,1159
+5,detect,test,789

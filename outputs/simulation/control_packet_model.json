@@ -1,0 +1,11 @@
+{
+  "leader_advertisement_bytes": 64,
+  "member_status_bytes_per_member": 128,
+  "ack_selection_bytes_per_member": 32,
+  "heartbeat_beacon_bytes_per_member": 32,
+  "re_election_trigger_bytes": 48,
+  "join_request_bytes": 96,
+  "join_ack_bytes": 32,
+  "leave_notification_bytes": 32,
+  "note": "Packet sizes are conservative estimates for DSRC/V2V control frames. Formation overhead is dominated by member status exchange and scales linearly with N."
+}

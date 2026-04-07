@@ -1,0 +1,32 @@
+model: resnet50
+encoder_pretrained: true
+input_size: 256
+encoder_out_channels: 2048
+decoder_channels: [512, 256, 128, 64, 32]
+
+loss:
+  bce_weight: 1.0
+  dice_weight: 1.0
+  dice_eps: 1.0e-6
+
+training:
+  epochs: 100
+  batch_size: 8
+  lr: 1.0e-4
+  optimizer: adam
+  scheduler: reduce_on_plateau
+  scheduler_patience: 5
+  scheduler_factor: 0.5
+  min_lr: 1.0e-6
+  early_stop_patience: 15
+  threshold: 0.5
+
+data:
+  split_dir: "/kaggle/input/datasets/kianizadpanah/kitti-citron-revised/citron_revision/data/processed/metadata"
+  crop_dir: "/kaggle/input/datasets/kianizadpanah/kitti-citron-revised/citron_revision/data/processed/crops"
+  train_csv: "overlap_train.csv"
+  val_csv: "overlap_val.csv"
+  test_csv: "overlap_test.csv"
+
+output_root: "/kaggle/working/citron_revision/outputs/overlap"
+checkpoint_name: "overlap_resnet50_best.pt"

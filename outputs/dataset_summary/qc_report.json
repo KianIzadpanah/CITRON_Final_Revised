@@ -1,0 +1,18 @@
+{
+  "seed": 42,
+  "mode": "scene",
+  "total_scenes": 15600,
+  "scenes_by_vehicle_count": {
+    "3": 7800,
+    "5": 7800
+  },
+  "total_crops": 62400,
+  "total_masks_checked": 62400,
+  "masks_with_overlap_pct": 100.0,
+  "overlap_ratio_min": 0.45,
+  "overlap_ratio_max": 0.75,
+  "overlap_ratio_mean": 0.5995611458333333,
+  "crop_size_bytes_min": 81021,
+  "crop_size_bytes_max": 383893,
+  "crop_size_bytes_mean": 200759.38205128204
+}

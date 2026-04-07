@@ -1,0 +1,17 @@
+event_type,n_vehicles,link,control_bytes,control_delay_s,control_energy_j
+formation,3,DSRC,448,0.010017,0.000224
+join,3,DSRC,192,0.010007,9.6e-05
+leave,3,DSRC,64,0.010002,3.2e-05
+leader_failure,3,DSRC,400,0.010015,0.0002
+formation,3,WiFi,448,0.005004,0.000134
+join,3,WiFi,192,0.005002,5.8e-05
+leave,3,WiFi,64,0.005001,1.9e-05
+leader_failure,3,WiFi,400,0.005004,0.00012
+formation,5,DSRC,832,0.010031,0.000416
+join,5,DSRC,192,0.010007,9.6e-05
+leave,5,DSRC,64,0.010002,3.2e-05
+leader_failure,5,DSRC,720,0.010027,0.00036
+formation,5,WiFi,832,0.005008,0.00025
+join,5,WiFi,192,0.005002,5.8e-05
+leave,5,WiFi,64,0.005001,1.9e-05
+leader_failure,5,WiFi,720,0.005007,0.000216

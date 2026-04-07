@@ -1,0 +1,49 @@
+seed: 42
+kitti_img_root: "d:/research/CITRON/KITTI_img/training/image_02"
+kitti_label_root: "d:/research/CITRON/KITTI_labels/training/label_02"
+
+# All 21 KITTI tracking sequences
+sequences: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+
+vehicle_counts: [3, 5]
+
+# Paper equation 12: rho ~ U(0.45, 0.75)
+overlap_ratio_range: [0.45, 0.75]
+
+# Augmentation probabilities (paper Section IV-E)
+augmentation_probs:
+  blur: 0.25
+  scale: 0.25
+  rotate: 0.25
+
+scale_range: [0.8, 1.2]
+rotate_range_deg: [-3.0, 3.0]
+blur_kernel_range: [3, 7]
+
+# 70 / 15 / 15 split at scene level to prevent leakage
+split_ratios:
+  overlap:
+    train: 0.70
+    val: 0.15
+    test: 0.15
+  detect:
+    train: 0.75
+    val: 0.15
+    test: 0.10
+
+# YOLO class mapping (consistent with existing kitti-to-yolo notebook)
+class_map:
+  Car: 0
+  Pedestrian: 1
+  Van: 2
+  Cyclist: 3
+  Truck: 4
+  Misc: 5
+  Tram: 6
+  Person_sitting: 7
+
+ignore_classes: ["DontCare"]
+
+# Output root
+output_root: "d:/research/CITRON/citron_revision/data/processed"
+summary_root: "d:/research/CITRON/citron_revision/outputs/dataset_summary"
