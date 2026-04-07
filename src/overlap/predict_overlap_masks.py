@@ -14,6 +14,10 @@ Usage:
         --out_dir outputs/overlap/predicted_masks
 """
 
+from src.overlap.overlap_model import build_overlap_model
+from src.common.io_utils import get_logger
+from src.common.config_utils import load_yaml
+from src.common.seed_utils import set_all_seeds
 import sys
 import argparse
 from pathlib import Path
@@ -28,10 +32,6 @@ from torchvision import transforms
 _HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(_HERE.parent.parent))
 
-from src.common.seed_utils import set_all_seeds
-from src.common.config_utils import load_yaml
-from src.common.io_utils import get_logger
-from src.overlap.overlap_model import build_overlap_model
 
 LOG = get_logger("predict_overlap_masks")
 SEED = 42
@@ -74,8 +74,19 @@ def main():
     crop_meta_path = Path(cfg["data"]["split_dir"]) / "crop_metadata.csv"
     if not crop_meta_path.exists():
         # Try relative path
-        crop_meta_path = Path(cfg["data"]["split_dir"]).parent / "crop_metadata.csv"
+        crop_meta_path = Path(cfg["data"]["split_dir"]
+                              ).parent / "crop_metadata.csv"
     crop_meta = pd.read_csv(crop_meta_path)
+
+    # Remap stored absolute paths to the configured crop_dir (handles stale paths
+    # from a previous session, e.g. /kaggle/working/ → /kaggle/input/...).
+    crop_dir = cfg["data"].get("crop_dir")
+    if crop_dir:
+        crop_dir = Path(crop_dir)
+        crop_meta["image_path"] = crop_meta["image_path"].apply(
+            lambda p: str(
+                crop_dir / Path(p).name) if isinstance(p, str) and p else p
+        )
 
     size = cfg["input_size"]
     threshold = args.threshold
@@ -83,7 +94,8 @@ def main():
     processed = 0
     for _, srow in scene_df.iterrows():
         scene_id = srow["scene_id"]
-        crops = crop_meta[crop_meta["scene_id"] == scene_id].sort_values("crop_index")
+        crops = crop_meta[crop_meta["scene_id"]
+                          == scene_id].sort_values("crop_index")
         if len(crops) < 2:
             continue
         for i in range(len(crops) - 1):
@@ -104,10 +116,12 @@ def main():
             # Save prob map
             prob_vis = (pred * 255).astype(np.uint8)
             prob_colored = cv2.applyColorMap(prob_vis, cv2.COLORMAP_HOT)
-            cv2.imwrite(str(out_dir / f"{scene_id}_mask{k_l}_{k_r}_pred_prob.png"), prob_colored)
+            cv2.imwrite(
+                str(out_dir / f"{scene_id}_mask{k_l}_{k_r}_pred_prob.png"), prob_colored)
 
             # Save binary mask
-            cv2.imwrite(str(out_dir / f"{scene_id}_mask{k_l}_{k_r}_pred_bin.png"), pred_bin)
+            cv2.imwrite(
+                str(out_dir / f"{scene_id}_mask{k_l}_{k_r}_pred_bin.png"), pred_bin)
 
             # Overlay on left crop
             crop_img = cv2.imread(row_l["image_path"])
@@ -115,7 +129,8 @@ def main():
                 crop_resized = cv2.resize(crop_img, (size, size))
                 mask_3ch = cv2.cvtColor(pred_bin, cv2.COLOR_GRAY2BGR)
                 overlay = cv2.addWeighted(crop_resized, 0.6, mask_3ch, 0.4, 0)
-                cv2.imwrite(str(out_dir / f"{scene_id}_mask{k_l}_{k_r}_overlay.png"), overlay)
+                cv2.imwrite(
+                    str(out_dir / f"{scene_id}_mask{k_l}_{k_r}_overlay.png"), overlay)
 
             processed += 1
 

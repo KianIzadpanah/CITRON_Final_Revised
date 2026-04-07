@@ -15,6 +15,13 @@ Outputs (under outputs/overlap/):
     overlap_backbone_results.csv  (comparison table ResNet-50 vs MobileNet)
 """
 
+from src.overlap.train_overlap_resnet50 import OverlapPairDataset, run_epoch
+from src.overlap.overlap_metrics import compute_metrics, aggregate_metrics
+from src.overlap.overlap_losses import BCEDiceLoss
+from src.overlap.overlap_model import build_overlap_model, count_parameters
+from src.common.io_utils import get_logger, guard_overwrite
+from src.common.config_utils import load_yaml, save_yaml, copy_config
+from src.common.seed_utils import set_all_seeds
 import sys
 import argparse
 import time
@@ -29,13 +36,6 @@ from torch.utils.data import DataLoader
 _HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(_HERE.parent.parent))
 
-from src.common.seed_utils import set_all_seeds
-from src.common.config_utils import load_yaml, save_yaml, copy_config
-from src.common.io_utils import get_logger, guard_overwrite
-from src.overlap.overlap_model import build_overlap_model, count_parameters
-from src.overlap.overlap_losses import BCEDiceLoss
-from src.overlap.overlap_metrics import compute_metrics, aggregate_metrics
-from src.overlap.train_overlap_resnet50 import OverlapPairDataset, run_epoch
 
 LOG = get_logger("train_overlap_lightweight")
 SEED = 42
@@ -63,10 +63,13 @@ def main():
         LOG.info("Checkpoint exists, skipping training.")
     else:
         split_dir = Path(cfg["data"]["split_dir"])
+        crop_dir = cfg["data"].get("crop_dir")
         train_ds = OverlapPairDataset(split_dir / cfg["data"]["train_csv"],
-                                      input_size=cfg["input_size"])
+                                      input_size=cfg["input_size"],
+                                      crop_dir=crop_dir)
         val_ds = OverlapPairDataset(split_dir / cfg["data"]["val_csv"],
-                                    input_size=cfg["input_size"])
+                                    input_size=cfg["input_size"],
+                                    crop_dir=crop_dir)
         train_dl = DataLoader(train_ds, batch_size=cfg["training"]["batch_size"],
                               shuffle=True, num_workers=2, pin_memory=True)
         val_dl = DataLoader(val_ds, batch_size=cfg["training"]["batch_size"],
@@ -75,16 +78,19 @@ def main():
         LOG.info(f"Train pairs: {len(train_ds)} | Val pairs: {len(val_ds)}")
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        model = build_overlap_model(cfg["model"], pretrained=cfg["encoder_pretrained"])
+        model = build_overlap_model(
+            cfg["model"], pretrained=cfg["encoder_pretrained"])
         model = model.to(device)
-        LOG.info(f"Model: {cfg['model']} | Params: {count_parameters(model):,}")
+        LOG.info(
+            f"Model: {cfg['model']} | Params: {count_parameters(model):,}")
 
         criterion = BCEDiceLoss(
             bce_weight=cfg["loss"]["bce_weight"],
             dice_weight=cfg["loss"]["dice_weight"],
             eps=cfg["loss"]["dice_eps"],
         )
-        optimizer = torch.optim.Adam(model.parameters(), lr=cfg["training"]["lr"])
+        optimizer = torch.optim.Adam(
+            model.parameters(), lr=cfg["training"]["lr"])
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer, patience=cfg["training"]["scheduler_patience"],
             factor=cfg["training"]["scheduler_factor"],
@@ -97,8 +103,10 @@ def main():
 
         for epoch in range(1, cfg["training"]["epochs"] + 1):
             t0 = time.time()
-            tr_loss, tr_m = run_epoch(model, train_dl, criterion, optimizer, device, True)
-            vl_loss, vl_m = run_epoch(model, val_dl, criterion, optimizer, device, False)
+            tr_loss, tr_m = run_epoch(
+                model, train_dl, criterion, optimizer, device, True)
+            vl_loss, vl_m = run_epoch(
+                model, val_dl, criterion, optimizer, device, False)
             scheduler.step(vl_loss)
             elapsed = time.time() - t0
 
@@ -129,8 +137,10 @@ def main():
 
     # Test evaluation
     split_dir = Path(cfg["data"]["split_dir"])
+    crop_dir = cfg["data"].get("crop_dir")
     test_ds = OverlapPairDataset(split_dir / cfg["data"]["test_csv"],
-                                  input_size=cfg["input_size"])
+                                 input_size=cfg["input_size"],
+                                 crop_dir=crop_dir)
     test_dl = DataLoader(test_ds, batch_size=cfg["training"]["batch_size"],
                          shuffle=False, num_workers=2, pin_memory=True)
 
@@ -147,8 +157,10 @@ def main():
     # Measure inference time
     import time
     model.eval()
-    dummy_l = torch.randn(1, 3, cfg["input_size"], cfg["input_size"]).to(device)
-    dummy_r = torch.randn(1, 3, cfg["input_size"], cfg["input_size"]).to(device)
+    dummy_l = torch.randn(
+        1, 3, cfg["input_size"], cfg["input_size"]).to(device)
+    dummy_r = torch.randn(
+        1, 3, cfg["input_size"], cfg["input_size"]).to(device)
     times = []
     with torch.no_grad():
         for _ in range(50):
@@ -180,7 +192,8 @@ def main():
 
     backbone_df = pd.DataFrame(rows)
     backbone_df.to_csv(out_dir / "overlap_backbone_results.csv", index=False)
-    LOG.info(f"Backbone comparison saved: {out_dir / 'overlap_backbone_results.csv'}")
+    LOG.info(
+        f"Backbone comparison saved: {out_dir / 'overlap_backbone_results.csv'}")
 
     copy_config(args.config, out_dir)
     LOG.info("Done.")

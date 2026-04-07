@@ -14,6 +14,12 @@ Outputs (under outputs/overlap/):
     run_config_resnet50.yaml
 """
 
+from src.overlap.overlap_metrics import compute_metrics, aggregate_metrics
+from src.overlap.overlap_losses import BCEDiceLoss
+from src.overlap.overlap_model import build_overlap_model, count_parameters
+from src.common.io_utils import get_logger, guard_overwrite
+from src.common.config_utils import load_yaml, save_yaml, copy_config
+from src.common.seed_utils import set_all_seeds
 import sys
 import argparse
 import time
@@ -31,12 +37,6 @@ from torchvision import transforms
 _HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(_HERE.parent.parent))
 
-from src.common.seed_utils import set_all_seeds
-from src.common.config_utils import load_yaml, save_yaml, copy_config
-from src.common.io_utils import get_logger, guard_overwrite
-from src.overlap.overlap_model import build_overlap_model, count_parameters
-from src.overlap.overlap_losses import BCEDiceLoss
-from src.overlap.overlap_metrics import compute_metrics, aggregate_metrics
 
 LOG = get_logger("train_overlap_resnet50")
 SEED = 42
@@ -54,7 +54,8 @@ class OverlapPairDataset(Dataset):
      and its right neighbor k+1 in left-crop coordinates).
     """
 
-    def __init__(self, csv_path: str | Path, input_size: int = 256, augment: bool = False):
+    def __init__(self, csv_path: str | Path, input_size: int = 256, augment: bool = False,
+                 crop_dir: str | Path | None = None):
         csv_path = Path(csv_path)
         if not csv_path.exists():
             raise FileNotFoundError(
@@ -70,9 +71,22 @@ class OverlapPairDataset(Dataset):
                 "configs/dataset.yaml are correct and that Phase A completed successfully."
             )
 
+        # Remap stored absolute paths to the configured crop_dir so that CSVs
+        # generated in a previous session (e.g. /kaggle/working/...) still work
+        # when the data has been moved to a Kaggle input dataset.
+        if crop_dir is not None:
+            crop_dir = Path(crop_dir)
+            for col in ("image_path", "mask_path_right", "mask_path_left"):
+                if col in self.df.columns:
+                    self.df[col] = self.df[col].apply(
+                        lambda p: str(
+                            crop_dir / Path(p).name) if isinstance(p, str) and p else p
+                    )
+
         # Keep only crops that have a right neighbour (all except the last crop per scene)
         mask_col = self.df["mask_path_right"]
-        self.df = self.df[mask_col.notna() & (mask_col != "")].reset_index(drop=True)
+        self.df = self.df[mask_col.notna() & (mask_col != "")
+                          ].reset_index(drop=True)
 
         self.input_size = input_size
         self.augment = augment
@@ -108,8 +122,8 @@ class OverlapPairDataset(Dataset):
                 row_l = group.iloc[i]
                 row_r = group.iloc[i + 1]
                 pairs.append({"img_l": row_l["image_path"],
-                               "img_r": row_r["image_path"],
-                               "mask": row_l["mask_path_right"]})
+                              "img_r": row_r["image_path"],
+                              "mask": row_l["mask_path_right"]})
         return pairs
 
     def _build_pairs(self):
@@ -161,14 +175,16 @@ class OverlapPairDataset(Dataset):
         img = cv2.resize(img, (self.input_size, self.input_size))
         t = self.to_tensor(img)
         # Normalize with ImageNet stats
-        t = TF.normalize(t, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        t = TF.normalize(t, mean=[0.485, 0.456, 0.406],
+                         std=[0.229, 0.224, 0.225])
         return t
 
     def _load_mask(self, path: str) -> torch.Tensor:
         m = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
         if m is None:
             m = np.zeros((self.input_size, self.input_size), np.uint8)
-        m = cv2.resize(m, (self.input_size, self.input_size), interpolation=cv2.INTER_NEAREST)
+        m = cv2.resize(m, (self.input_size, self.input_size),
+                       interpolation=cv2.INTER_NEAREST)
         m = (m > 127).astype(np.float32)
         return torch.from_numpy(m).unsqueeze(0)
 
@@ -184,7 +200,8 @@ def run_epoch(model, loader, criterion, optimizer, device, training: bool):
 
     with torch.set_grad_enabled(training):
         for img1, img2, mask in loader:
-            img1, img2, mask = img1.to(device), img2.to(device), mask.to(device)
+            img1, img2, mask = img1.to(device), img2.to(
+                device), mask.to(device)
             pred = model(img1, img2)
             loss = criterion(pred, mask)
             if training:
@@ -222,10 +239,13 @@ def main():
     else:
         # Build datasets
         split_dir = Path(cfg["data"]["split_dir"])
+        crop_dir = cfg["data"].get("crop_dir")
         train_ds = OverlapPairDataset(split_dir / cfg["data"]["train_csv"],
-                                      input_size=cfg["input_size"])
+                                      input_size=cfg["input_size"],
+                                      crop_dir=crop_dir)
         val_ds = OverlapPairDataset(split_dir / cfg["data"]["val_csv"],
-                                    input_size=cfg["input_size"])
+                                    input_size=cfg["input_size"],
+                                    crop_dir=crop_dir)
 
         train_dl = DataLoader(train_ds, batch_size=cfg["training"]["batch_size"],
                               shuffle=True, num_workers=2, pin_memory=True)
@@ -235,16 +255,19 @@ def main():
         LOG.info(f"Train pairs: {len(train_ds)} | Val pairs: {len(val_ds)}")
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        model = build_overlap_model(cfg["model"], pretrained=cfg["encoder_pretrained"])
+        model = build_overlap_model(
+            cfg["model"], pretrained=cfg["encoder_pretrained"])
         model = model.to(device)
-        LOG.info(f"Model: {cfg['model']} | Params: {count_parameters(model):,}")
+        LOG.info(
+            f"Model: {cfg['model']} | Params: {count_parameters(model):,}")
 
         criterion = BCEDiceLoss(
             bce_weight=cfg["loss"]["bce_weight"],
             dice_weight=cfg["loss"]["dice_weight"],
             eps=cfg["loss"]["dice_eps"],
         )
-        optimizer = torch.optim.Adam(model.parameters(), lr=cfg["training"]["lr"])
+        optimizer = torch.optim.Adam(
+            model.parameters(), lr=cfg["training"]["lr"])
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer, patience=cfg["training"]["scheduler_patience"],
             factor=cfg["training"]["scheduler_factor"],
@@ -257,8 +280,10 @@ def main():
 
         for epoch in range(1, cfg["training"]["epochs"] + 1):
             t0 = time.time()
-            tr_loss, tr_m = run_epoch(model, train_dl, criterion, optimizer, device, True)
-            vl_loss, vl_m = run_epoch(model, val_dl, criterion, optimizer, device, False)
+            tr_loss, tr_m = run_epoch(
+                model, train_dl, criterion, optimizer, device, True)
+            vl_loss, vl_m = run_epoch(
+                model, val_dl, criterion, optimizer, device, False)
             scheduler.step(vl_loss)
             elapsed = time.time() - t0
 
@@ -290,8 +315,10 @@ def main():
 
     # --- Evaluation on test set ---
     split_dir = Path(cfg["data"]["split_dir"])
+    crop_dir = cfg["data"].get("crop_dir")
     test_ds = OverlapPairDataset(split_dir / cfg["data"]["test_csv"],
-                                  input_size=cfg["input_size"])
+                                 input_size=cfg["input_size"],
+                                 crop_dir=crop_dir)
     test_dl = DataLoader(test_ds, batch_size=cfg["training"]["batch_size"],
                          shuffle=False, num_workers=2, pin_memory=True)
 
@@ -306,7 +333,8 @@ def main():
     tst_loss, tst_m = run_epoch(model, test_dl, criterion, None, device, False)
     LOG.info(f"Test loss={tst_loss:.4f} | {tst_m}")
 
-    tst_df = pd.DataFrame([{"model": cfg["model"], "test_loss": tst_loss, **tst_m}])
+    tst_df = pd.DataFrame(
+        [{"model": cfg["model"], "test_loss": tst_loss, **tst_m}])
     tst_df.to_csv(test_metrics_path, index=False)
     LOG.info(f"Test metrics saved: {test_metrics_path}")
 
@@ -331,12 +359,22 @@ def main():
             return (t * std + mean).clamp(0, 1).permute(1, 2, 0).numpy()
 
         fig, axes = plt.subplots(1, 5, figsize=(20, 4))
-        axes[0].imshow(denorm(img1_t)); axes[0].set_title("Crop A"); axes[0].axis("off")
-        axes[1].imshow(denorm(img2_t)); axes[1].set_title("Crop B"); axes[1].axis("off")
-        axes[2].imshow(mask_t.squeeze(), cmap="gray"); axes[2].set_title("GT mask"); axes[2].axis("off")
-        axes[3].imshow(pred.numpy(), cmap="hot"); axes[3].set_title("Pred prob"); axes[3].axis("off")
+        axes[0].imshow(denorm(img1_t))
+        axes[0].set_title("Crop A")
+        axes[0].axis("off")
+        axes[1].imshow(denorm(img2_t))
+        axes[1].set_title("Crop B")
+        axes[1].axis("off")
+        axes[2].imshow(mask_t.squeeze(), cmap="gray")
+        axes[2].set_title("GT mask")
+        axes[2].axis("off")
+        axes[3].imshow(pred.numpy(), cmap="hot")
+        axes[3].set_title("Pred prob")
+        axes[3].axis("off")
         diff = (pred_bin.numpy() != mask_t.squeeze().numpy()).astype(float)
-        axes[4].imshow(diff, cmap="bwr"); axes[4].set_title("Diff (pred vs GT)"); axes[4].axis("off")
+        axes[4].imshow(diff, cmap="bwr")
+        axes[4].set_title("Diff (pred vs GT)")
+        axes[4].axis("off")
         plt.tight_layout()
         plt.savefig(qc_dir / f"resnet50_qc_{i:03d}.png", dpi=80)
         plt.close(fig)

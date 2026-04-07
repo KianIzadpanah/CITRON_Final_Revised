@@ -12,6 +12,9 @@ Outputs (under outputs/detection/{mode}/):
     run_config.yaml
 """
 
+from src.common.io_utils import get_logger
+from src.common.config_utils import load_yaml, save_json, copy_config
+from src.common.seed_utils import set_all_seeds
 import sys
 import os
 import argparse
@@ -23,9 +26,6 @@ import yaml
 _HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(_HERE.parent.parent))
 
-from src.common.seed_utils import set_all_seeds
-from src.common.config_utils import load_yaml, save_json, copy_config
-from src.common.io_utils import get_logger
 
 LOG = get_logger("train_detector")
 SEED = 42
@@ -60,7 +60,8 @@ def build_yolo_dataset_yaml(
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="configs/detector.yaml")
-    parser.add_argument("--mode", choices=["crop_mode", "stitched_mode"], default="crop_mode")
+    parser.add_argument(
+        "--mode", choices=["crop_mode", "stitched_mode"], default="crop_mode")
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
 
@@ -75,6 +76,18 @@ def main():
 
     train_df = pd.read_csv(train_csv)
     val_df = pd.read_csv(val_csv)
+
+    # Remap stored absolute paths to the configured crop_dir (handles stale paths
+    # from a previous session, e.g. /kaggle/working/ → /kaggle/input/...).
+    _crop_dir = cfg["data"].get("crop_dir")
+    if _crop_dir:
+        _crop_dir = Path(_crop_dir)
+        for _df in (train_df, val_df):
+            if "image_path" in _df.columns:
+                _df["image_path"] = _df["image_path"].apply(
+                    lambda p: str(
+                        _crop_dir / Path(p).name) if isinstance(p, str) and p else p
+                )
 
     if mode == "crop_mode":
         train_imgs = train_df["image_path"].tolist()
@@ -107,7 +120,8 @@ def main():
 
     weights_path = out_dir / "weights" / "best.pt"
     if weights_path.exists() and not args.force:
-        LOG.info(f"Weights already exist: {weights_path}. Use --force to retrain.")
+        LOG.info(
+            f"Weights already exist: {weights_path}. Use --force to retrain.")
         return
 
     from ultralytics import YOLO
