@@ -46,5 +46,5 @@ class_map:
 ignore_classes: ["DontCare"]
 
 # Output root
-output_root: "d:/research/CITRON/citron_revision/data/processed"
-summary_root: "d:/research/CITRON/citron_revision/outputs/dataset_summary"
+output_root: "/kaggle/input/datasets/kianizadpanah/kitti-citron-revised/citron_revision/data/processed"
+summary_root: "/kaggle/input/datasets/kianizadpanah/kitti-citron-revised/citron_revision/outputs/dataset_summary"

@@ -24,9 +24,9 @@ training:
 data:
   split_dir: "/kaggle/input/datasets/kianizadpanah/kitti-citron-revised/citron_revision/data/processed/metadata"
   crop_dir: "/kaggle/input/datasets/kianizadpanah/kitti-citron-revised/citron_revision/data/processed/crops"
-  train_csv: "overlap_train.csv"
-  val_csv: "overlap_val.csv"
-  test_csv: "overlap_test.csv"
+  train_csv: "/kaggle/input/datasets/kianizadpanah/kitti-citron-revised/citron_revision/data/processed/metadata/overlap_train.csv"
+  val_csv: "/kaggle/input/datasets/kianizadpanah/kitti-citron-revised/citron_revision/data/processed/metadata/overlap_val.csv"
+  test_csv: "/kaggle/input/datasets/kianizadpanah/kitti-citron-revised/citron_revision/data/processed/metadata/overlap_test.csv"
 
 output_root: "/kaggle/working/citron_revision/outputs/overlap"
 checkpoint_name: "overlap_mobilenet_best.pt"
