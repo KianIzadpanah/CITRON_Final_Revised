@@ -12,9 +12,6 @@ Outputs (under outputs/detection/{mode}/):
     run_config.yaml
 """
 
-from src.common.io_utils import get_logger
-from src.common.config_utils import load_yaml, save_json, copy_config
-from src.common.seed_utils import set_all_seeds
 import sys
 import os
 import argparse
@@ -25,8 +22,14 @@ import yaml
 
 _HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(_HERE.parent.parent))
-
-
+try:
+    from src.common.io_utils import get_logger
+    from src.common.config_utils import load_yaml, save_json, copy_config
+    from src.common.seed_utils import set_all_seeds
+except ImportError as e:
+    print(f"Error importing modules: {e}")
+    print("Make sure to run this script from the project root directory.")
+    sys.exit(1)
 LOG = get_logger("train_detector")
 SEED = 42
 

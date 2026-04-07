@@ -15,13 +15,6 @@ Outputs (under outputs/overlap/):
     overlap_backbone_results.csv  (comparison table ResNet-50 vs MobileNet)
 """
 
-from src.overlap.train_overlap_resnet50 import OverlapPairDataset, run_epoch
-from src.overlap.overlap_metrics import compute_metrics, aggregate_metrics
-from src.overlap.overlap_losses import BCEDiceLoss
-from src.overlap.overlap_model import build_overlap_model, count_parameters
-from src.common.io_utils import get_logger, guard_overwrite
-from src.common.config_utils import load_yaml, save_yaml, copy_config
-from src.common.seed_utils import set_all_seeds
 import sys
 import argparse
 import time
@@ -35,8 +28,18 @@ from torch.utils.data import DataLoader
 
 _HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(_HERE.parent.parent))
-
-
+try:
+    from src.overlap.train_overlap_resnet50 import OverlapPairDataset, run_epoch
+    from src.overlap.overlap_metrics import compute_metrics, aggregate_metrics
+    from src.overlap.overlap_losses import BCEDiceLoss
+    from src.overlap.overlap_model import build_overlap_model, count_parameters
+    from src.common.io_utils import get_logger, guard_overwrite
+    from src.common.config_utils import load_yaml, save_yaml, copy_config
+    from src.common.seed_utils import set_all_seeds
+except ImportError as e:
+    print(f"Error importing modules: {e}")
+    print("Make sure to run this script from the project root directory.")
+    sys.exit(1)
 LOG = get_logger("train_overlap_lightweight")
 SEED = 42
 

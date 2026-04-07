@@ -14,12 +14,6 @@ Outputs (under outputs/overlap/):
     run_config_resnet50.yaml
 """
 
-from src.overlap.overlap_metrics import compute_metrics, aggregate_metrics
-from src.overlap.overlap_losses import BCEDiceLoss
-from src.overlap.overlap_model import build_overlap_model, count_parameters
-from src.common.io_utils import get_logger, guard_overwrite
-from src.common.config_utils import load_yaml, save_yaml, copy_config
-from src.common.seed_utils import set_all_seeds
 import sys
 import argparse
 import time
@@ -36,7 +30,18 @@ from torchvision import transforms
 
 _HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(_HERE.parent.parent))
-
+try:
+    from src.overlap.overlap_metrics import compute_metrics, aggregate_metrics
+    from src.overlap.overlap_losses import BCEDiceLoss
+    from src.overlap.overlap_model import build_overlap_model, count_parameters
+    from src.common.io_utils import get_logger, guard_overwrite
+    from src.common.config_utils import load_yaml, save_yaml, copy_config
+    from src.common.seed_utils import set_all_seeds
+except ImportError as e:
+    raise ImportError(
+        f"Failed to import modules. Make sure to run this script from the project root "
+        f"and that all dependencies are installed. Original error: {e}"
+    )
 
 LOG = get_logger("train_overlap_resnet50")
 SEED = 42
